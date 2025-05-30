@@ -1,36 +1,38 @@
 'use client';
-import axios from 'axios';
 import { useFormik } from 'formik';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import React from 'react'
+import React from 'react';
 import toast from 'react-hot-toast';
-
+import { useAuth } from '@/context/AuthContext';
 
 const Login = () => {
     const router = useRouter();
+    const { login } = useAuth();
 
     const loginForm = useFormik({
         initialValues: {
             email: '',
             password: ''
         },
-        onSubmit: (values, { resetForm }) => {
-            console.log(values);
-
-            axios.post('http://localhost:5000/user/authenticate', values)
-                .then((response) => {
-                    toast.success('User Logedin Successfully');
-                    localStorage.setItem('token', response.data.token);
+        onSubmit: async (values, { resetForm, setSubmitting }) => {
+            try {
+                const result = await login(values.email, values.password);
+                if (result.success) {
+                    toast.success('Logged in successfully');
                     router.push('/');
-                }).catch((err) => {
-                    console.log(err);
-                    toast.error('Something went wrong');
-                });
-
-            resetForm();
+                    resetForm();
+                } else {
+                    toast.error(result.error || 'Login failed');
+                }
+            } catch (err) {
+                console.error(err);
+                toast.error('Something went wrong');
+            } finally {
+                setSubmitting(false);
+            }
         }
-    })
+    });
 
     return (
         <div className='bg-cover pt-10 min-h-screen' style={{backgroundImage: `url('https://images.saymedia-content.com/.image/t_share/MTkyOTkyMzE2OTQ3MjQ0MjUz/website-background-templates.jpg')`}}>
@@ -38,7 +40,6 @@ const Login = () => {
                 <h3 className='text-2xl my-6 text-center font-bold'>Login Form</h3>
 
                 <form onSubmit={loginForm.handleSubmit}>
-
                     <div className='mb-5'>
                         <label htmlFor="email">Email Address</label>
                         <input
@@ -49,6 +50,7 @@ const Login = () => {
                             className='w-full border border-gray-400 rounded-lg px-3 py-2 mt-1 text-black'
                         />
                     </div>
+
                     <div className='mb-5'>
                         <label htmlFor="password">Password</label>
                         <input
@@ -60,14 +62,24 @@ const Login = () => {
                         />
                     </div>
 
-                    <Link href="/signup" className='text-violet-500'>Not Registered Yet? Register Here</Link>
-
-                    <button type='submit' className='mt-5 bg-violet-500 p-3 w-full text-white rounded-lg'>Submit</button>
-
+                    <button
+                        type="submit"
+                        disabled={loginForm.isSubmitting}
+                        className='w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg disabled:opacity-50'
+                    >
+                        {loginForm.isSubmitting ? 'Logging in...' : 'Login'}
+                    </button>
                 </form>
+
+                <p className='text-center mt-4'>
+                    Don't have an account?{' '}
+                    <Link href="/signup" className='text-blue-500 hover:text-blue-600'>
+                        Sign up here
+                    </Link>
+                </p>
             </div>
         </div>
-    )
-}
+    );
+};
 
 export default Login;

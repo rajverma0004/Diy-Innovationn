@@ -1,5 +1,7 @@
+'use client';
 import Image from "next/image"
 import Link from "next/link"
+import { useEffect, useState } from "react"
 import {
   ArrowRight,
   ChevronRight,
@@ -19,89 +21,62 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import Navbar from "@/components/Navbar"
 
 export default function Home() {
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [projectOfMonth, setProjectOfMonth] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/product/getall');
+        if (!response.ok) {
+          throw new Error('Failed to fetch products');
+        }
+        const data = await response.json();
+        
+        // Filter featured products
+        const featured = data.filter(product => product.featured);
+        setFeaturedProducts(featured);
+
+        // Extract unique categories
+        const uniqueCategories = Array.from(new Set(data.map(product => product.category)))
+          .map(category => {
+            const productsInCategory = data.filter(product => product.category === category);
+            const firstProduct = productsInCategory[0];
+            return {
+              name: category,
+              image: firstProduct?.images?.[0] || '/placeholder.svg',
+              count: productsInCategory.length
+            };
+          });
+        setCategories(uniqueCategories);
+
+        // Find the highest rated product for Project of the Month
+        const highestRated = data.reduce((prev, current) => {
+          return (prev.rating > current.rating) ? prev : current;
+        });
+        setProjectOfMonth(highestRated);
+
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
   return (
     <div className="flex min-h-screen flex-col bg-[#fcf9f2]">
       {/* Decorative header strip */}
       <div className="w-full h-2 bg-gradient-to-r from-[#e57373] via-[#81c784] to-[#64b5f6]"></div>
-
-      <header className="sticky top-0 z-50 w-full border-b bg-[#fcf9f2]/95 backdrop-blur supports-[backdrop-filter]:bg-[#fcf9f2]/60">
-        <div className="container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0">
-          <div className="flex gap-6 md:gap-10">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="relative">
-                <Scissors className="h-6 w-6 text-[#e57373] rotate-[-45deg]" />
-                <div className="absolute -top-1 -right-1 w-2 h-2 bg-[#81c784] rounded-full"></div>
-              </div>
-              <span className="inline-block font-bold text-[#4a4a4a] font-serif">Craft Haven</span>
-            </Link>
-            <nav className="hidden gap-6 md:flex">
-              <Link
-                href="#"
-                className="flex items-center text-sm font-medium text-[#4a4a4a] transition-colors hover:text-[#e57373]"
-              >
-                Shop Kits
-              </Link>
-              <Link
-                href="#"
-                className="flex items-center text-sm font-medium text-[#4a4a4a] transition-colors hover:text-[#e57373]"
-              >
-                Tutorials
-              </Link>
-              <Link
-                href="#"
-                className="flex items-center text-sm font-medium text-[#4a4a4a] transition-colors hover:text-[#e57373]"
-              >
-                Inspiration
-              </Link>
-              <Link
-                href="#"
-                className="flex items-center text-sm font-medium text-[#4a4a4a] transition-colors hover:text-[#e57373]"
-              >
-                Community
-              </Link>
-            </nav>
-          </div>
-          <div className="flex flex-1 items-center justify-end space-x-4">
-            <nav className="flex items-center space-x-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-[#4a4a4a] hover:text-[#e57373] hover:bg-[#f8e8e8]"
-                asChild
-              >
-                <Link href="#">
-                  <Heart className="h-5 w-5" />
-                  <span className="sr-only">Wishlist</span>
-                </Link>
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-[#4a4a4a] hover:text-[#e57373] hover:bg-[#f8e8e8]"
-                asChild
-              >
-                <Link href="#">
-                  <ShoppingBag className="h-5 w-5" />
-                  <span className="sr-only">Cart</span>
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="hidden sm:inline-flex border-[#e57373] text-[#e57373] hover:bg-[#f8e8e8]"
-                asChild
-              >
-                <Link href="#">Sign In</Link>
-              </Button>
-              <Button size="sm" className="hidden sm:inline-flex bg-[#e57373] hover:bg-[#d05757]">
-                Sign Up
-              </Button>
-            </nav>
-          </div>
-        </div>
-      </header>
+      <Navbar/>
 
       <main className="flex-1">
         {/* Hero section with craft paper texture */}
@@ -146,7 +121,7 @@ export default function Home() {
               <div className="relative mx-auto aspect-video overflow-hidden rounded-xl object-cover sm:w-full lg:order-last">
                 <div className="absolute inset-0 border-4 border-dashed border-[#e5e5e5] rounded-xl -z-10 transform rotate-1"></div>
                 <Image
-                  src="/placeholder.svg?height=550&width=800"
+                  src="https://imgs.search.brave.com/8uACdS-hB97nFlstxk5O2N5H5a6j4el7fF8-DGcSRyM/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly9tZWRp/YS5pc3RvY2twaG90/by5jb20vaWQvMTM5/NDM1OTc1MS9waG90/by93b21hbi1wYWlu/dGluZy13b29kZW4t/Ym94LWRvaW5nLXNv/bWUtcmVub3ZhdGlu/Zy1ob3VzZXdvcmst/b3V0ZG9vcnMuanBn/P3M9NjEyeDYxMiZ3/PTAmaz0yMCZjPU15/YzdkWGhGdW9RTFR2/UmFXbnkzTnpPSWNh/RlBMZGRPQ3I3bVFt/YmYwNEE9"
                   width={800}
                   height={550}
                   alt="Crafting supplies and a person working on a DIY project"
@@ -160,248 +135,48 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Categories section with paper cut-out style */}
+        {/* Categories section */}
         <section className="w-full py-12 md:py-16">
           <div className="container px-4 md:px-6">
             <div className="text-center mb-10">
               <h2 className="text-2xl font-bold text-[#4a4a4a] inline-block relative font-serif">
-                <span className="relative z-10">Find Your Perfect Project</span>
+                <span className="relative z-10">Browse by Category</span>
                 <span className="absolute bottom-1 left-0 w-full h-3 bg-[#ffd54f]/40 -z-10 transform -rotate-1"></span>
               </h2>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="group relative overflow-hidden rounded-lg bg-white shadow-md transition-all hover:shadow-lg">
-                <div className="absolute inset-0 bg-gradient-to-t from-[#000000]/60 to-transparent z-10"></div>
-                <Image
-                  src=""
-                  width={300}
-                  height={300}
-                  alt="Home Decor"
-                  className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                />
-                <div className="absolute bottom-0 left-0 w-full p-4 z-20">
-                  <h3 className="text-white font-medium text-lg">Home Decor</h3>
-                </div>
+            {loading ? (
+              <div className="text-center py-10">Loading categories...</div>
+            ) : error ? (
+              <div className="text-center py-10 text-red-500">{error}</div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {categories.map((category) => (
+                  <Link 
+                    key={category.name} 
+                    href={`/browse?category=${encodeURIComponent(category.name)}`}
+                    className="group relative overflow-hidden rounded-lg bg-white shadow-md transition-all hover:shadow-lg"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#000000]/60 to-transparent z-10"></div>
+                    <Image
+                      src={category.image}
+                      width={300}
+                      height={300}
+                      alt={category.name}
+                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                    />
+                    <div className="absolute bottom-0 left-0 w-full p-4 z-20">
+                      <h3 className="text-white font-medium text-lg">{category.name}</h3>
+                      <p className="text-white/80 text-sm">{category.count} projects</p>
+                    </div>
+                  </Link>
+                ))}
               </div>
-
-              <div className="group relative overflow-hidden rounded-lg bg-white shadow-md transition-all hover:shadow-lg">
-                <div className="absolute inset-0 bg-gradient-to-t from-[#000000]/60 to-transparent z-10"></div>
-                <Image
-                  src="/placeholder.svg?height=300&width=300"
-                  width={300}
-                  height={300}
-                  alt="Jewelry"
-                  className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                />
-                <div className="absolute bottom-0 left-0 w-full p-4 z-20">
-                  <h3 className="text-white font-medium text-lg">Jewelry</h3>
-                </div>
-              </div>
-
-              <div className="group relative overflow-hidden rounded-lg bg-white shadow-md transition-all hover:shadow-lg">
-                <div className="absolute inset-0 bg-gradient-to-t from-[#000000]/60 to-transparent z-10"></div>
-                <Image
-                  src="/placeholder.svg?height=300&width=300"
-                  width={300}
-                  height={300}
-                  alt="Paper Crafts"
-                  className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                />
-                <div className="absolute bottom-0 left-0 w-full p-4 z-20">
-                  <h3 className="text-white font-medium text-lg">Paper Crafts</h3>
-                </div>
-              </div>
-
-              <div className="group relative overflow-hidden rounded-lg bg-white shadow-md transition-all hover:shadow-lg">
-                <div className="absolute inset-0 bg-gradient-to-t from-[#000000]/60 to-transparent z-10"></div>
-                <Image
-                  src="/placeholder.svg?height=300&width=300"
-                  width={300}
-                  height={300}
-                  alt="Kids Projects"
-                  className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                />
-                <div className="absolute bottom-0 left-0 w-full p-4 z-20">
-                  <h3 className="text-white font-medium text-lg">Kids Projects</h3>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </section>
 
         {/* Featured products with craft-inspired design */}
-        <section className="w-full py-12 md:py-24 relative overflow-hidden">
-          {/* Decorative elements */}
-          <div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml,%3Csvg width='52' height='26' viewBox='0 0 52 26' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fillRule='evenodd'%3E%3Cg fill='%23e5e5e5' fillOpacity='0.4'%3E%3Cpath d='M10 10c0-2.21-1.79-4-4-4-3.314 0-6-2.686-6-6h2c0 2.21 1.79 4 4 4 3.314 0 6 2.686 6 6 0 2.21 1.79 4 4 4 3.314 0 6 2.686 6 6 0 2.21 1.79 4 4 4v2c-3.314 0-6-2.686-6-6 0-2.21-1.79-4-4-4-3.314 0-6-2.686-6-6zm25.464-1.95l8.486 8.486-1.414 1.414-8.486-8.486 1.414-1.414z' /%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-30 -z-10"></div>
-
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="space-y-2 max-w-3xl">
-                <div className="inline-block rounded-full bg-[#ffd54f]/30 px-3 py-1 text-sm text-[#4a4a4a] font-medium">
-                  Bestsellers
-                </div>
-                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl font-serif text-[#4a4a4a]">
-                  Handpicked DIY Kits for You
-                </h2>
-                <p className="text-[#6b6b6b] md:text-lg">
-                  Complete kits with premium materials and step-by-step instructions to create something beautiful.
-                </p>
-              </div>
-            </div>
-
-            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 py-12 sm:grid-cols-2 md:grid-cols-3 lg:gap-8">
-              {/* Product card 1 with craft-inspired design */}
-              <Card className="group overflow-hidden border-none bg-white shadow-md hover:shadow-xl transition-all">
-                <div className="relative">
-                  <div className="absolute top-2 right-2 z-10">
-                    <Badge className="bg-[#e57373]">Bestseller</Badge>
-                  </div>
-                  <div className="aspect-square overflow-hidden">
-                    <Image
-                      src="/placeholder.svg?height=400&width=400"
-                      width={400}
-                      height={400}
-                      alt="Macrame Wall Hanging Kit"
-                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                    />
-                  </div>
-                </div>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-[#4a4a4a] group-hover:text-[#e57373] transition-colors">
-                    Macrame Wall Hanging
-                  </CardTitle>
-                  <CardDescription className="text-[#6b6b6b]">Complete beginner-friendly kit</CardDescription>
-                </CardHeader>
-                <CardContent className="pb-2">
-                  <div className="flex justify-between items-center">
-                    <div className="text-2xl font-bold text-[#4a4a4a]">$39.99</div>
-                    <div className="flex items-center gap-0.5">
-                      <Star className="h-4 w-4 fill-[#ffd54f] text-[#ffd54f]" />
-                      <Star className="h-4 w-4 fill-[#ffd54f] text-[#ffd54f]" />
-                      <Star className="h-4 w-4 fill-[#ffd54f] text-[#ffd54f]" />
-                      <Star className="h-4 w-4 fill-[#ffd54f] text-[#ffd54f]" />
-                      <Star className="h-4 w-4 fill-[#e5e5e5] text-[#e5e5e5]" />
-                      <span className="ml-1 text-sm text-[#6b6b6b]">(42)</span>
-                    </div>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    <Badge variant="outline" className="bg-[#f5efe6] text-[#6b6b6b] border-[#e5e5e5]">
-                      2-3 hours
-                    </Badge>
-                    <Badge variant="outline" className="bg-[#f5efe6] text-[#6b6b6b] border-[#e5e5e5]">
-                      Beginner
-                    </Badge>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button className="w-full bg-[#81c784] hover:bg-[#66bb6a] rounded-full">Add to Cart</Button>
-                </CardFooter>
-              </Card>
-
-              {/* Product card 2 */}
-              <Card className="group overflow-hidden border-none bg-white shadow-md hover:shadow-xl transition-all">
-                <div className="relative">
-                  <div className="absolute top-2 right-2 z-10">
-                    <Badge className="bg-[#64b5f6]">New</Badge>
-                  </div>
-                  <div className="aspect-square overflow-hidden">
-                    <Image
-                      src="/placeholder.svg?height=400&width=400"
-                      width={400}
-                      height={400}
-                      alt="Ceramic Mug Painting Kit"
-                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                    />
-                  </div>
-                </div>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-[#4a4a4a] group-hover:text-[#e57373] transition-colors">
-                    Ceramic Mug Painting
-                  </CardTitle>
-                  <CardDescription className="text-[#6b6b6b]">Paint your own unique mugs</CardDescription>
-                </CardHeader>
-                <CardContent className="pb-2">
-                  <div className="flex justify-between items-center">
-                    <div className="text-2xl font-bold text-[#4a4a4a]">$29.99</div>
-                    <div className="flex items-center gap-0.5">
-                      <Star className="h-4 w-4 fill-[#ffd54f] text-[#ffd54f]" />
-                      <Star className="h-4 w-4 fill-[#ffd54f] text-[#ffd54f]" />
-                      <Star className="h-4 w-4 fill-[#ffd54f] text-[#ffd54f]" />
-                      <Star className="h-4 w-4 fill-[#ffd54f] text-[#ffd54f]" />
-                      <Star className="h-4 w-4 fill-[#ffd54f] text-[#ffd54f]" />
-                      <span className="ml-1 text-sm text-[#6b6b6b]">(78)</span>
-                    </div>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    <Badge variant="outline" className="bg-[#f5efe6] text-[#6b6b6b] border-[#e5e5e5]">
-                      1-2 hours
-                    </Badge>
-                    <Badge variant="outline" className="bg-[#f5efe6] text-[#6b6b6b] border-[#e5e5e5]">
-                      All levels
-                    </Badge>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button className="w-full bg-[#81c784] hover:bg-[#66bb6a] rounded-full">Add to Cart</Button>
-                </CardFooter>
-              </Card>
-
-              {/* Product card 3 */}
-              <Card className="group overflow-hidden border-none bg-white shadow-md hover:shadow-xl transition-all">
-                <div className="aspect-square overflow-hidden">
-                  <Image
-                    src="/placeholder.svg?height=400&width=400"
-                    width={400}
-                    height={400}
-                    alt="Wooden Birdhouse Kit"
-                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                  />
-                </div>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-[#4a4a4a] group-hover:text-[#e57373] transition-colors">
-                    Wooden Birdhouse
-                  </CardTitle>
-                  <CardDescription className="text-[#6b6b6b]">Build a home for your feathered friends</CardDescription>
-                </CardHeader>
-                <CardContent className="pb-2">
-                  <div className="flex justify-between items-center">
-                    <div className="text-2xl font-bold text-[#4a4a4a]">$34.99</div>
-                    <div className="flex items-center gap-0.5">
-                      <Star className="h-4 w-4 fill-[#ffd54f] text-[#ffd54f]" />
-                      <Star className="h-4 w-4 fill-[#ffd54f] text-[#ffd54f]" />
-                      <Star className="h-4 w-4 fill-[#ffd54f] text-[#ffd54f]" />
-                      <Star className="h-4 w-4 fill-[#ffd54f] text-[#ffd54f]" />
-                      <Star className="h-4 w-4 fill-[#e5e5e5] text-[#e5e5e5]" />
-                      <span className="ml-1 text-sm text-[#6b6b6b]">(56)</span>
-                    </div>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    <Badge variant="outline" className="bg-[#f5efe6] text-[#6b6b6b] border-[#e5e5e5]">
-                      3-4 hours
-                    </Badge>
-                    <Badge variant="outline" className="bg-[#f5efe6] text-[#6b6b6b] border-[#e5e5e5]">
-                      Intermediate
-                    </Badge>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button className="w-full bg-[#81c784] hover:bg-[#66bb6a] rounded-full">Add to Cart</Button>
-                </CardFooter>
-              </Card>
-            </div>
-
-            <div className="flex justify-center">
-              <Button
-                variant="outline"
-                size="lg"
-                className="gap-1 rounded-full border-[#e57373] text-[#e57373] hover:bg-[#f8e8e8]"
-              >
-                View All Kits <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </section>
 
         {/* Project of the month section */}
         <section className="w-full py-12 md:py-24 bg-[#f5efe6] relative overflow-hidden">
@@ -412,73 +187,77 @@ export default function Home() {
           <div className="container px-4 md:px-6 relative">
             <div className="text-center mb-12">
               <Badge className="bg-[#ffd54f] text-[#4a4a4a] mb-4">Project of the Month</Badge>
-              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl font-serif text-[#4a4a4a]">
-                Botanical Resin Coasters
-              </h2>
-            </div>
+              {loading ? (
+                <div>Loading project...</div>
+              ) : error ? (
+                <div className="text-red-500">{error}</div>
+              ) : projectOfMonth ? (
+                <>
+                  <h2 className="text-3xl font-bold tracking-tighter md:text-4xl font-serif text-[#4a4a4a]">
+                    {projectOfMonth.name}
+                  </h2>
 
-            <div className="grid md:grid-cols-2 gap-8 items-center">
-              <div className="relative">
-                <div className="absolute inset-0 border-4 border-dashed border-[#e5e5e5] rounded-xl -z-10 transform rotate-3"></div>
-                <Image
-                  src="/placeholder.svg?height=600&width=600"
-                  width={600}
-                  height={600}
-                  alt="Botanical Resin Coasters"
-                  className="rounded-lg shadow-lg transform -rotate-3"
-                />
-                <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-[#81c784]/20 rounded-full -z-10"></div>
-              </div>
+                  <div className="grid md:grid-cols-2 gap-8 items-center mt-8">
+                    <div className="relative">
+                      <div className="absolute inset-0 border-4 border-dashed border-[#e5e5e5] rounded-xl -z-10 transform rotate-3"></div>
+                      <Image
+                        src={projectOfMonth.images?.[0] || '/placeholder.svg'}
+                        width={600}
+                        height={600}
+                        alt={projectOfMonth.name}
+                        className="rounded-lg shadow-lg transform -rotate-3"
+                      />
+                      <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-[#81c784]/20 rounded-full -z-10"></div>
+                    </div>
 
-              <div className="space-y-6">
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-0.5">
-                    <Star className="h-5 w-5 fill-[#ffd54f] text-[#ffd54f]" />
-                    <Star className="h-5 w-5 fill-[#ffd54f] text-[#ffd54f]" />
-                    <Star className="h-5 w-5 fill-[#ffd54f] text-[#ffd54f]" />
-                    <Star className="h-5 w-5 fill-[#ffd54f] text-[#ffd54f]" />
-                    <Star className="h-5 w-5 fill-[#ffd54f] text-[#ffd54f]" />
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-0.5">
+                          {[...Array(Math.round(projectOfMonth.rating))].map((_, i) => (
+                            <Star key={i} className="h-5 w-5 fill-[#ffd54f] text-[#ffd54f]" />
+                          ))}
+                        </div>
+                        <span className="text-[#6b6b6b]">({projectOfMonth.rating} rating)</span>
+                      </div>
+
+                      <div className="space-y-2">
+                        <p className="text-lg text-[#6b6b6b]">{projectOfMonth.detail}</p>
+
+                        <div className="flex flex-wrap gap-2 py-2">
+                          <Badge variant="outline" className="bg-white text-[#6b6b6b] border-[#e5e5e5]">
+                            {projectOfMonth.difficulty}
+                          </Badge>
+                          {projectOfMonth.category && (
+                            <Badge variant="outline" className="bg-white text-[#6b6b6b] border-[#e5e5e5]">
+                              {projectOfMonth.category}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <Link href={`/project/${projectOfMonth._id}`}>
+                          <Button size="lg" className="bg-[#81c784] hover:bg-[#66bb6a] rounded-full">
+                            View Project
+                          </Button>
+                        </Link>
+                        {projectOfMonth.video && (
+                          <Button
+                            size="lg"
+                            variant="outline"
+                            className="border-[#e57373] text-[#e57373] hover:bg-[#f8e8e8] rounded-full"
+                            onClick={() => window.open(projectOfMonth.video, '_blank')}
+                          >
+                            Watch Tutorial
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <span className="text-[#6b6b6b]">(124 reviews)</span>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-lg text-[#6b6b6b]">
-                    Preserve the beauty of nature in stunning resin coasters. This kit includes everything you need to
-                    create four unique coasters with real pressed flowers and leaves.
-                  </p>
-
-                  <div className="flex flex-wrap gap-2 py-2">
-                    <Badge variant="outline" className="bg-white text-[#6b6b6b] border-[#e5e5e5]">
-                      2-3 hours
-                    </Badge>
-                    <Badge variant="outline" className="bg-white text-[#6b6b6b] border-[#e5e5e5]">
-                      Beginner friendly
-                    </Badge>
-                    <Badge variant="outline" className="bg-white text-[#6b6b6b] border-[#e5e5e5]">
-                      Includes all materials
-                    </Badge>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <div className="text-3xl font-bold text-[#4a4a4a]">$42.99</div>
-                  <Badge className="bg-[#e57373]">15% OFF</Badge>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Button size="lg" className="bg-[#81c784] hover:bg-[#66bb6a] rounded-full">
-                    Add to Cart
-                  </Button>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="border-[#e57373] text-[#e57373] hover:bg-[#f8e8e8] rounded-full"
-                  >
-                    Watch Tutorial
-                  </Button>
-                </div>
-              </div>
+                </>
+              ) : (
+                <div>No projects available</div>
+              )}
             </div>
           </div>
         </section>
@@ -535,97 +314,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Community showcase section */}
-        <section className="w-full py-12 md:py-24 bg-[#f5efe6]">
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center mb-10">
-              <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl font-serif text-[#4a4a4a] inline-block relative">
-                  <span className="relative z-10">Community Creations</span>
-                  <span className="absolute bottom-1 left-0 w-full h-3 bg-[#e57373]/30 -z-10 transform -rotate-1"></span>
-                </h2>
-                <p className="max-w-[900px] text-[#6b6b6b] md:text-lg">
-                  See what our crafty community has been making with our DIY kits.
-                </p>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="relative group overflow-hidden rounded-lg">
-                <Image
-                  src="/placeholder.svg?height=300&width=300"
-                  width={300}
-                  height={300}
-                  alt="Community creation"
-                  className="w-full h-full object-cover transition-transform group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#000000]/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                  <div className="text-white text-sm">
-                    <p className="font-medium">@craftlover</p>
-                    <p>Macrame wall hanging</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative group overflow-hidden rounded-lg">
-                <Image
-                  src="/placeholder.svg?height=300&width=300"
-                  width={300}
-                  height={300}
-                  alt="Community creation"
-                  className="w-full h-full object-cover transition-transform group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#000000]/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                  <div className="text-white text-sm">
-                    <p className="font-medium">@diycreator</p>
-                    <p>Painted ceramic mugs</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative group overflow-hidden rounded-lg">
-                <Image
-                  src="/placeholder.svg?height=300&width=300"
-                  width={300}
-                  height={300}
-                  alt="Community creation"
-                  className="w-full h-full object-cover transition-transform group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#000000]/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                  <div className="text-white text-sm">
-                    <p className="font-medium">@craftymom</p>
-                    <p>Wooden birdhouse</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative group overflow-hidden rounded-lg">
-                <Image
-                  src="/placeholder.svg?height=300&width=300"
-                  width={300}
-                  height={300}
-                  alt="Community creation"
-                  className="w-full h-full object-cover transition-transform group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#000000]/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                  <div className="text-white text-sm">
-                    <p className="font-medium">@artisancrafter</p>
-                    <p>Resin coasters</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-center mt-8">
-              <Button
-                variant="outline"
-                className="gap-1 rounded-full border-[#4a4a4a] text-[#4a4a4a] hover:bg-[#e5e5e5]/50"
-              >
-                Follow Us on Instagram <Instagram className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          </div>
-        </section>
 
         {/* Newsletter section with craft-inspired design */}
         <section className="w-full py-12 md:py-24 relative overflow-hidden">
@@ -678,7 +367,7 @@ export default function Home() {
                 <div className="relative hidden lg:block">
                   <div className="absolute inset-0 border-4 border-dashed border-[#e5e5e5] rounded-xl -z-10 transform rotate-2"></div>
                   <Image
-                    src="/placeholder.svg?height=400&width=500"
+                    src="https://imgs.search.brave.com/PAfQ_OZvKOyqldrIZkpxTA9rsleQk_rexlNDImAHjJ4/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly9pLnNo/Z2Nkbi5jb20vMGFm/YjU5NjctNDAzZS00/N2U4LThkYzUtMDM2/MzYzMTUwYjliLy0v/Zm9ybWF0L2F1dG8v/LS9wcmV2aWV3LzMw/MDB4MzAwMC8tL3F1/YWxpdHkvbGlnaHRl/ci8.jpeg"
                     width={500}
                     height={400}
                     alt="DIY community crafting together"
